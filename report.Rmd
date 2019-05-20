@@ -1,0 +1,12 @@
+---
+title: "LolPredict"
+author: "Martín Dans"
+date: \today
+output: pdf_document
+---
+
+\section{Introduction}
+In this project I tried to predict the outcome of a League of Legends match just after the champion select phase. This means, we know what champion is going to play which player.
+
+\section{Generating the data}
+
