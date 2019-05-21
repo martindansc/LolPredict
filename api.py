@@ -20,11 +20,11 @@ def wait_time():
 
 def make_request_lol_api(path, params = {}):
     wait_time()
+    print("Making resquest: " + path)
     payload = {**API_KEY, **params}
     response =  (requests.get("https://" + os.getenv("REGION") + LOL_API_BASE_URL + path, payload))
     if response.status_code != 200:
-        print(response)
-        exit()
+        print("Error in request: " + response.reason)
     return response.json()
 
 
@@ -32,8 +32,8 @@ def make_cacheable_request_lol_api(path, params = {}):
     result = {}
 
     str_page = ""
-    if("page" in params):
-        str_page = "_" + str(params["page"])
+    for key in params:
+        str_page = "_" + str(params[key])
 
     filename = "api-files" + path + str_page + ".json"
     exists = os.path.isfile(filename)
@@ -73,7 +73,6 @@ def get_matches():
         with open("api-files/matches/data" + str(i) + ".json") as json_file:  
             matches = (json.load(json_file))
             ret = ret + matches
-    
     return ret
 
 def get_summoner_by_name(name):
@@ -82,8 +81,8 @@ def get_summoner_by_name(name):
 def get_summoner_by_id(id):
     return make_cacheable_request_lol_api('/lol/summoner/v4/summoners/' + id)
 
-def get_matchlists_by_account_id(id):
-    return make_cacheable_request_lol_api('/lol/match/v4/matchlists/by-account/' + id, {"queue" : 420})
+def get_matchlists_by_account_id(id, filters = {}):
+    return make_cacheable_request_lol_api('/lol/match/v4/matchlists/by-account/' + id, {"queue" : 420, **filters})
 
 def get_match_by_id(id):
     return make_cacheable_request_lol_api('/lol/match/v4/matches/' + str(id))

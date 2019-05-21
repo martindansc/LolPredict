@@ -1,8 +1,15 @@
 import json
 import api
 
+## Helpers for user data
+def get_user_champion_winrate(user, champion):
+    api.get_matchlists_by_account_id()
+
+# In this function we are going to extract as much data as possible for a specific user 
 def get_user_data(match, participant_id, team_id):
-    return True
+    ret = {}
+
+    return ret
 
 def get_team_data(match, team):
     team_data = []
