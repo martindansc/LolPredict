@@ -15,10 +15,10 @@ def wait_time():
         time.sleep(60)
         API_CALLS_COUNTER = 0
     API_CALLS_COUNTER += 1
-    time.sleep(0.2)
+    time.sleep(0.3)
 
 
-def make_request_lol_api(path, params = {}):
+def make_request_lol_api(path, params = {}, retries = 1):
     wait_time()
     print("Making resquest: " + path)
     payload = {**API_KEY, **params}
@@ -26,7 +26,12 @@ def make_request_lol_api(path, params = {}):
     if response.status_code != 200:
         print("Error in request: " + response.reason)
         if response.status_code != 404:
-            exit()
+            if retries > 5:
+                exit()
+            else:
+                time.sleep(retries*10)
+                retries += 1
+                return make_request_lol_api(path, params, retries)
     return response.json()
 
 
@@ -58,15 +63,14 @@ def make_cacheable_request_lol_api(path, params = {}):
 ## Interface
 def get_matches():
     
-    #random_pages = [1,145,248,384,64,724,562,678,895,736]
-    random_pages = [1]
+    random_pages = [1,145,248,384,64,724,562,678,895,736]
     
     for random_page in random_pages:
         exists = os.path.isfile("api-files/matches/data" + str(random_page) + ".json")
         if not exists:
             matches = []
             league = get_league_entries(os.getenv("TIER"), os.getenv("DIVISION"), random_page)
-            for j in range(10):
+            for j in range(20):
                 player = league[j]
                 account = get_summoner_by_id(player["summonerId"])
                 summoner_games = get_matchlists_by_account_id(account["accountId"])

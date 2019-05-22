@@ -53,25 +53,43 @@ def get_team_data(match, team):
     return team_data
     
 
-def generate_players_match_data(startIndex, endIndex):
+def get_players_match_data(startIndex, endIndex):
     data = []
     matches = api.get_matches()
-    for match in matches:
-        match = []
+    for i in range(startIndex, endIndex + 1):
+        match = matches[i]
         row = {}
         
+        # team 1 data
         team_data_0 = get_team_data(match, 0)
-        team_data_0 = get_processed_data(team_data_0, 0)
-        print(team_data_0)
+        team_data_0 = get_processed_data(match, team_data_0, 0)
         row = {**row, **team_data_0}
 
+        # team 2 data
         team_data_1 = get_team_data(match, 1)
-        team_data_1 = get_processed_data(team_data_1, 1)
+        team_data_1 = get_processed_data(match, team_data_1, 1)
         row = {**row, **team_data_1}
+
+        # common data
+        row["wins"] = match["teams"][0]["win"] == "Win"
 
         data.append(row)
 
     return data
 
-def get_processed_data(team_data, team):
-    return {}
+def get_processed_data(match, team_data, team):
+    
+    min_winrate = team_data[0]["win_ratio"]
+    max_winrate = team_data[0]["win_ratio"]
+    avg_winrate = team_data[0]["win_ratio"]
+
+    for i in range(1, len(team_data)):
+        if(team_data[i]["win_ratio"] < min_winrate):
+            min_winrate = team_data[i]["win_ratio"]
+        if(team_data[i]["win_ratio"] > max_winrate):
+            max_winrate = team_data[i]["win_ratio"]
+        avg_winrate += team_data[i]["win_ratio"]
+    
+    avg_winrate = avg_winrate/len(team_data)
+
+    return {"min_winrate" : min_winrate,"max_winrate" : max_winrate, "avg_winrate": avg_winrate}
