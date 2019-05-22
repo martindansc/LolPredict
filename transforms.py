@@ -20,7 +20,7 @@ def get_player_champion_winrate(user, champion):
         num_matches = 0
         for match in matches["matches"]:
             recorded_match = api.get_match_by_id(match["gameId"])
-            if recorded_match:
+            if recorded_match and recorded_match["gameMode"] == "CLASSIC" and recorded_match["gameType"] == "MATCHED_GAME":
                 if(get_if_account_won_match(recorded_match, user)):
                     num_wins += 1
                 num_matches += 1
@@ -53,11 +53,11 @@ def get_team_data(match, team):
     return team_data
     
 
-def generate_players_match_data():
+def generate_players_match_data(startIndex, endIndex):
     data = []
     matches = api.get_matches()
     for match in matches:
-
+        match = []
         row = {}
         
         team_data_0 = get_team_data(match, 0)

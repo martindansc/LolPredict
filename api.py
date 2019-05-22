@@ -25,6 +25,8 @@ def make_request_lol_api(path, params = {}):
     response =  (requests.get("https://" + os.getenv("REGION") + LOL_API_BASE_URL + path, payload))
     if response.status_code != 200:
         print("Error in request: " + response.reason)
+        if response.status_code != 404:
+            exit()
     return response.json()
 
 
@@ -56,10 +58,10 @@ def make_cacheable_request_lol_api(path, params = {}):
 ## Interface
 def get_matches():
     
-    random_pages = [1,145,248,384,64,724,562,678,895,736]
+    #random_pages = [1,145,248,384,64,724,562,678,895,736]
+    random_pages = [1]
     
-    for i in range(1):
-        random_page = random_pages[i]
+    for random_page in random_pages:
         exists = os.path.isfile("api-files/matches/data" + str(random_page) + ".json")
         if not exists:
             matches = []
@@ -70,11 +72,11 @@ def get_matches():
                 summoner_games = get_matchlists_by_account_id(account["accountId"])
                 matches.append(get_match_by_id(summoner_games["matches"][0]["gameId"]))
 
-            with open("api-files/matches/data" + str(i) + ".json", "w") as json_file:  
+            with open("api-files/matches/data" + str(random_page) + ".json", "w") as json_file:  
                 json.dump(matches, json_file)
     ret = []
-    for i in random_pages:
-        with open("api-files/matches/data" + str(i) + ".json") as json_file:  
+    for random_page in random_pages:
+        with open("api-files/matches/data" + str(random_page) + ".json") as json_file:  
             matches = (json.load(json_file))
             ret = ret + matches
     return ret
@@ -86,7 +88,7 @@ def get_summoner_by_id(id):
     return make_cacheable_request_lol_api('/lol/summoner/v4/summoners/' + id)
 
 def get_matchlists_by_account_id(id, filters = {}):
-    return make_cacheable_request_lol_api('/lol/match/v4/matchlists/by-account/' + id, {"queue" : 420, **filters})
+    return make_cacheable_request_lol_api('/lol/match/v4/matchlists/by-account/' + id, {"queue" : 420, "endIndex" : 20, **filters})
 
 def get_match_by_id(id):
     return make_cacheable_request_lol_api('/lol/match/v4/matches/' + str(id))
