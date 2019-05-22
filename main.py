@@ -1,4 +1,5 @@
 import settings
 import api
+import transforms
 
-api.get_matches()
+transforms.generate_players_match_data()

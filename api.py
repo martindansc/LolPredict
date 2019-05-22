@@ -33,7 +33,7 @@ def make_cacheable_request_lol_api(path, params = {}):
 
     str_page = ""
     for key in params:
-        str_page = "_" + str(params[key])
+        str_page += "_" + str(params[key])
 
     filename = "api-files" + path + str_page + ".json"
     exists = os.path.isfile(filename)
@@ -46,6 +46,9 @@ def make_cacheable_request_lol_api(path, params = {}):
     else:
         with open(filename) as json_file:  
             result = json.load(json_file)
+
+    if("status" in result):
+        return False
     
     return result
 
@@ -55,11 +58,12 @@ def get_matches():
     
     random_pages = [1,145,248,384,64,724,562,678,895,736]
     
-    for i in random_pages:
-        exists = os.path.isfile("api-files/matches/data" + str(i) + ".json")
+    for i in range(1):
+        random_page = random_pages[i]
+        exists = os.path.isfile("api-files/matches/data" + str(random_page) + ".json")
         if not exists:
             matches = []
-            league = get_league_entries(os.getenv("TIER"), os.getenv("DIVISION"), i)
+            league = get_league_entries(os.getenv("TIER"), os.getenv("DIVISION"), random_page)
             for j in range(10):
                 player = league[j]
                 account = get_summoner_by_id(player["summonerId"])
