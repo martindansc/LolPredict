@@ -15,22 +15,22 @@ def get_if_account_won_match(match, user):
 def get_player_champion_winrate(user, champion):
     ret = {}
     matches = api.get_matchlists_by_account_id(user, {"champion" : champion})
+    if matches:
+        num_wins = 0
+        num_matches = 0
+        for match in matches["matches"]:
+            recorded_match = api.get_match_by_id(match["gameId"])
+            if recorded_match:
+                if(get_if_account_won_match(recorded_match, user)):
+                    num_wins += 1
+                num_matches += 1
 
-    num_wins = 0
-    num_matches = 0
-    for match in matches["matches"]:
-        recorded_match = api.get_match_by_id(match["gameId"])
-        if(recorded_match):
-            if(get_if_account_won_match(recorded_match, user)):
-                num_wins += 1
-            num_matches += 1
-
-    ret["num_matches"] = num_matches
-    ret["num_wins"] = num_wins
-    if matches == 0:
-        ret["win_ratio"] = 0.5
-    else:
-        ret["win_ratio"] = ret["num_wins"]/ret["num_matches"]
+        ret["num_matches"] = num_matches
+        ret["num_wins"] = num_wins
+        if matches == 0:
+            ret["win_ratio"] = 0.5
+        else:
+            ret["win_ratio"] = ret["num_wins"]/ret["num_matches"]
 
     return ret
 
@@ -39,7 +39,7 @@ def get_user_data(match, participant_id, team_id):
     participant = match["participants"][participant_id - 1]
     participant_identity = match["participantIdentities"][participant_id - 1]["player"]
     ret = {}
-    
+
     ret = {**ret, **get_player_champion_winrate(participant_identity["currentAccountId"], participant["championId"])}
 
     return ret
