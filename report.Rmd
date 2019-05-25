@@ -5,8 +5,153 @@ date: \today
 output: pdf_document
 ---
 
+```{r setup}
+library(reticulate)
+use_python("~/anaconda3/bin/python", required = T)
+setwd("~/Projects/Uni/LolPredict")
+py_config()
+```
+
+```{python include=FALSE}
+from main import *
+```
+
 \section{Introduction}
-In this project I tried to predict the outcome of a League of Legends match just after the champion select phase. This means, we know what champion is going to play which player.
+In this project I tried to predict the outcome of a League of Legends match just after the champion select phase. This means, we know what champion is going to play which player but we don't anything more since the game time is 0. For doing so, we will use a simple idea: the team with previous higher winrates with the choosen champion will have more chances of winning this match.
 
-\section{Generating the data}
+\section{Architecture build}
+For this project I have build 3 modules: api, transforms and model. The api module handles, takes care and caches the data from the official lol api. The transforms module transforms so it has an apropiate format for feeding the training of the models. The models are built with the sklearn python library.
 
+\section{Data manipulation}
+The game is a team game and the data is provided by each player, but for training the models we need rows of matches. The interesting part here is how we do that, since if we want to keep all the information available there will be too mucht features. The features I choosed are the following ones.
+
+The api only allows for 100 req/minute, to get the winrate of a player you need to query each one of the players so I only could get 550 matches.
+
+Data of a single team in a match:
+
+```{python echo=FALSE}
+print_match_data()
+```
+
+Output data for the match:
+
+```{python echo=FALSE}
+print_team_data()
+```
+
+Almost every field explains by itself, notice that the field wins represetns if the "team 0" wins the match. Also, the role diff value is the substraction of players winrates for that role.
+
+The dataset was not complete and I had to deal with some fields.
+
+The first problem is what happens if it's the first time a player plays that specific champion? I decided to assign a 0.5 chance of winning, but I know that it's not accurate, it's known that a player has a lower winrate when starting to play a champion. Also not incompletness but there is another problem when using the percentatges, when there are few matches they aren't accurate and they introduce a lot of error, so maybe a standarization process could be done. 
+
+The second problem is that not all the roles are correctly set. To solve it I checked if I could fill it and in cases where it wasn't possible I set them to the average of the wrong placed players in the missing roles.
+
+\section{The first model}
+The simplest model I built has been a random forest with 100 matches using the features mininum winrate, maximum winrate and average winrate for each team. The accuracy get is 45%. As a side note, in the first run of this model I got a 88% accuracity. That value is too high so I double checked the process that I did and I realised that I was cheating with the training. In the steps for getting the data, the history of a player is extracted and it was including the match that I wanted to predict, so the win percetages where there.
+
+```{python echo=FALSE}
+basic_model()
+```
+
+We have something to work on!
+
+\section{Feature selection}
+
+From all the features above we want to see what are the one that are actually relevant. A simple test we can do it's to calculate the correlation between each feature and what we can to predict. With this we are getting the linear relation between them, of course, we may lose non linear relations and even linear relations of more than one feature but it will give us an idea of what features we can discard.
+
+The values obtained are the following:
+
+```{python}
+feature_selection()
+```
+
+With that I took as relevant features:
+
+min_winrate, avg_winrate, TOP_DIFF, JUNGLE_DIFF
+
+so we have 3 feature sets, the mentioned above, the basic one with only win percentatges and one with all the calculated features.
+
+\section{Models}
+
+\subsection{Linear regression model}
+
+It seems logic to think that if you have a high winrate then you have more chances to win. Let's try with a linear regression model to see what happens.
+
+```{python}
+(basic, _) = single_model("logistic_regression", "basic")
+(alls, _) = single_model("logistic_regression", "all")
+(selected_logistic, best_score_logistic) = single_model("logistic_regression", "selected")
+```
+
+All of them perform equally since we are using the same seed for training/test and also logistic regression already perfroms feature selection in the algorithm as it can setup coeficients to 0. We can print them to see that they are similiar to the features we removed.
+
+```{python}
+print(alls.coef_)
+print(selected.coef_)
+```
+
+\subsection{Support vector machine}
+
+The next model I tried are support vector machines. We will see if we improve the results when moving out of the linearity so I tried few kernels to see if it improves.
+
+But first, I checked that scaling the input improves the model since we know that support vector machines are sensible to big/small values in the input.
+
+```{python}
+(no_scaled, _) = single_model("support_vector_machine", "selected", False)
+(scaled_svm, best_score_svm) = single_model("support_vector_machine", "selected", True)
+```
+
+We can check the results obtained with different kernels.
+```{python}
+(poly, _) = single_model("support_vector_machine", "selected", True, {"kernel" : "poly", "gamma": "scale"})
+(exp, _) = single_model("support_vector_machine", "selected", True, {"kernel" : "rbf", "gamma": "auto"})
+(sigmoid, _) = single_model("support_vector_machine", "selected", True, {"kernel" : "sigmoid", "gamma": "scale"})
+```
+
+The exponential kernel performs equally to the linear, sigmoid seems slightly worse and the polynomic perform worse. I have tried only with the default values but the parameters could be tunned and maybe improved for all the kernels.
+
+\subsection{Random forest}
+
+Our last model will be random forest, maybe we can find a combination of winrates that performs better than the logistic regression model.
+
+```{python}
+(forest, _) = single_model("random_forest", "all")
+(forest_selected, best_score_forest) = single_model("random_forest", "selected")
+```
+
+Printing the features importance for the random forest.
+```{python}
+print(forest.feature_importances_)
+print(forest_selected.feature_importances_)
+```
+
+It's interesting to see that it uses equally all the features to classify the matches, I was expecting to see more or less the same features as before.
+
+\subsection{Comparison}
+
+The first thing I did is to compare the ROC and AUC measure for logistic and forest distributions. In class we mentioned that AUC is no the best measure but still gives us an idea.
+
+```{python echo=FALSE}
+get_roc_curves([forest_selected, selected_logistic], ["forest", "logistic"], "selected")
+```
+
+All the models perform more or less equally but we can observe clearly that the ROC curves cross. Logistic regression performs better overall but classifing good instances the random forest performs mutch better.
+
+Also, I wanted to check the confidence interval for the acuracity of the logistic model.
+```{python echo=FALSE}
+get_acuracity_interval(best_score_logistic)
+```
+
+
+\section{Conclusion}
+
+We can conclude that using the previous winrate for a specific player and champion does not give very good predictors of what team will win the match. While the accuracy of the models obtained is not very high I got the same acuracity than previous work done by other people using different features. This may point that winning is a combination of lots of things and can't be predicted with just few features or that the game is not consistently predictable.
+
+We have seen that using winrate by role doesn't improve a lot the models found and that there are two roles that probably have more impact in the game than the others.
+
+For future work, I would like to see if adding mode features to the models would increase it's predictions since I have been using the winrate of last matches like no other previous work I found and maybe it can work better if combained with one of the ones that others works have used.
+
+
+        
+      

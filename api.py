@@ -3,7 +3,6 @@ import json
 import os
 import time
 
-STATIC_MATCH_URL = "https://s3-us-west-1.amazonaws.com/riot-developer-portal/seed-data/matches"
 LOL_API_BASE_URL = ".api.riotgames.com"
 API_KEY = {'api_key': os.getenv("KEY")}
 API_CALLS_COUNTER = 0
@@ -63,9 +62,9 @@ def make_cacheable_request_lol_api(path, params = {}):
 ## Interface
 def get_matches():
     
-    random_pages = [1,145,248,384,64,724,562,678,895,736]
+    random_pages = [1,145,248,384,64,724,562,678,895,736,56,233,782,565,56,12,500,234,987,971,653,19,846,421,652,452,123,175,241,777,431,999]
     
-    for random_page in random_pages:
+    for random_page in random_pages: 
         exists = os.path.isfile("api-files/matches/data" + str(random_page) + ".json")
         if not exists:
             matches = []
